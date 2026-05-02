@@ -35,14 +35,14 @@ class _HomeScreenState extends State<HomeScreen> {
           text: TextSpan(
             children: [
               TextSpan(
-                text: 'Vibz',
+                text: 'Melo',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
               ),
               TextSpan(
-                text: 'check',
+                text: 'dex',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.onBackground,
                       fontWeight: FontWeight.bold,
