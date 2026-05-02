@@ -82,6 +82,13 @@ class AuthService {
     return UserModel.fromFirestore(doc);
   }
 
+  Future<void> updateProfilePhoto(String uid, String photoUrl) async {
+    await _db
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .update({'photoUrl': photoUrl});
+  }
+
   Stream<UserModel?> watchUserProfile(String uid) {
     return _db
         .collection(AppConstants.usersCollection)
