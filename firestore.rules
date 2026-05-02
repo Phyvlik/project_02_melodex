@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check the caller is signed in
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper: check the caller is the document owner
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    // Helper: check the caller is a member of a room
+    function isRoomMember(roomId) {
+      return isAuth() &&
+        request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.memberUids;
+    }
+
+    // Users: only the owner can write their own profile
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow write: if isOwner(userId);
+    }
+
+    // Rooms: any signed-in user can read; only members can update
+    match /rooms/{roomId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isRoomMember(roomId);
+      allow delete: if isAuth() &&
+        request.auth.uid == resource.data.hostUid;
+
+      // Playlist subcollection: members can add and vote, host can delete
+      match /playlist/{songId} {
+        allow read: if isRoomMember(roomId);
+        allow create: if isRoomMember(roomId);
+        allow update: if isRoomMember(roomId);
+        allow delete: if isAuth() &&
+          request.auth.uid == get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid;
+      }
+
+      // Votes subcollection: users can only write their own vote
+      match /votes/{voteId} {
+        allow read: if isRoomMember(roomId);
+        allow write: if isRoomMember(roomId) &&
+          request.auth.uid == request.resource.data.userId;
+      }
+
+      // Messages subcollection: members can read and post
+      match /messages/{messageId} {
+        allow read: if isRoomMember(roomId);
+        allow create: if isRoomMember(roomId);
+        allow delete: if isAuth() &&
+          request.auth.uid == resource.data.senderUid;
+      }
+    }
+  }
+}
