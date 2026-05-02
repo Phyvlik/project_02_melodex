@@ -73,7 +73,7 @@ class SpotifyService {
         queryParameters: {
           'q': query,
           'type': 'track',
-          'limit': 20,
+          'limit': 5,
         },
         options: Options(
           headers: {
@@ -92,7 +92,7 @@ class SpotifyService {
           queryParameters: {
             'q': query,
             'type': 'track',
-            'limit': 20,
+            'limit': 5,
           },
           options: Options(
             headers: {
