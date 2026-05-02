@@ -45,6 +45,9 @@ dependencies:
   # Open Spotify deep links
   url_launcher: ^6.3.0
 
+  # Profile photo picker from device gallery
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
