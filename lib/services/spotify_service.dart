@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song_model.dart';
@@ -64,42 +65,50 @@ class SpotifyService {
 
   Future<List<SpotifyTrack>> searchTracks(String query) async {
     final token = await _getAccessToken();
+    final dio = Dio();
 
-    final encodedQuery = Uri.encodeQueryComponent(query);
-    final uri = Uri.parse(
-      'https://api.spotify.com/v1/search?q=$encodedQuery&type=track',
-    );
-
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 401) {
-      final prefs = await SharedPreferences.getInstance();
-      final newToken = await _refreshToken(prefs);
-      final retryResponse = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $newToken',
-          'Accept': 'application/json',
+    try {
+      final response = await dio.get(
+        'https://api.spotify.com/v1/search',
+        queryParameters: {
+          'q': query,
+          'type': 'track',
+          'limit': 20,
         },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
       );
-      return _parseSearchResults(retryResponse.body);
+      return _parseSearchResults(response.data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        final prefs = await SharedPreferences.getInstance();
+        final newToken = await _refreshToken(prefs);
+        final retry = await dio.get(
+          'https://api.spotify.com/v1/search',
+          queryParameters: {
+            'q': query,
+            'type': 'track',
+            'limit': 20,
+          },
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $newToken',
+              'Accept': 'application/json',
+            },
+          ),
+        );
+        return _parseSearchResults(retry.data);
+      }
+      throw Exception('Spotify search failed: ${e.response?.statusCode}');
     }
-
-    if (response.statusCode != 200) {
-      throw Exception('Spotify search failed: ${response.statusCode}');
-    }
-
-    return _parseSearchResults(response.body);
   }
 
-  List<SpotifyTrack> _parseSearchResults(String body) {
-    final data = jsonDecode(body) as Map<String, dynamic>;
+  List<SpotifyTrack> _parseSearchResults(dynamic body) {
+    final data = (body is String ? jsonDecode(body) : body) as Map<String, dynamic>;
     final items = (data['tracks']['items'] as List<dynamic>);
 
     return items
