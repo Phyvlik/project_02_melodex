@@ -132,19 +132,33 @@ class RecommendationService {
   }) {
     final parts = <String>[];
 
-    if (voteScore > 0) parts.add('$voteScore net votes');
-    if (voteScore < 0) parts.add('$voteScore net votes (low priority)');
-
-    if (moodMatch == 1.0) {
-      parts.add('matches current $currentMood mood');
-    } else if (moodMatch == 0.0) {
-      parts.add('mood differs from room ($currentMood)');
+    if (voteScore > 0) {
+      parts.add('votes +$voteScore');
+    } else if (voteScore < 0) {
+      parts.add('votes $voteScore');
+    } else {
+      parts.add('votes neutral');
     }
 
-    if (historyBoost > 0.5) parts.add('genre fits the room taste');
-    if (historyBoost < 0) parts.add('recently played by a member');
+    if (moodMatch == 1.0) {
+      parts.add('mood matches ($currentMood)');
+    } else if (moodMatch == 0.5) {
+      parts.add('mood untagged');
+    } else {
+      parts.add('mood mismatch');
+    }
 
-    return parts.isEmpty ? 'No strong signals' : parts.join(', ');
+    if (historyBoost < 0) {
+      parts.add('recently played');
+    } else if (historyBoost > 0.5) {
+      parts.add('genre fits taste');
+    } else if (historyBoost > 0) {
+      parts.add('some genre overlap');
+    } else {
+      parts.add('no genre data');
+    }
+
+    return parts.join(' | ');
   }
 
   // Persist a manual override to Firestore so all clients see it
