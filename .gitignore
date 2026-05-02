@@ -1,7 +1,6 @@
-# Firebase config (contains sensitive keys)
+# Firebase config (keep google-services out of version control)
 google-services.json
 GoogleService-Info.plist
-firebase_options.dart
 .env
 *.env.local
 
