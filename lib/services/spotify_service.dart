@@ -65,27 +65,28 @@ class SpotifyService {
   Future<List<SpotifyTrack>> searchTracks(String query) async {
     final token = await _getAccessToken();
 
-    final uri = Uri.parse('${AppConstants.spotifyApiBase}/search').replace(
-      queryParameters: {
-        'q': query,
-        'type': 'track',
-        'limit': '20',
-        'market': 'US',
-      },
+    final encodedQuery = Uri.encodeQueryComponent(query);
+    final uri = Uri.parse(
+      'https://api.spotify.com/v1/search?q=$encodedQuery&type=track',
     );
 
     final response = await http.get(
       uri,
-      headers: {'Authorization': 'Bearer $token'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
     );
 
     if (response.statusCode == 401) {
-      // Token expired; refresh and retry once
       final prefs = await SharedPreferences.getInstance();
       final newToken = await _refreshToken(prefs);
       final retryResponse = await http.get(
         uri,
-        headers: {'Authorization': 'Bearer $newToken'},
+        headers: {
+          'Authorization': 'Bearer $newToken',
+          'Accept': 'application/json',
+        },
       );
       return _parseSearchResults(retryResponse.body);
     }
