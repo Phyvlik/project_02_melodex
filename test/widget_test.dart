@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:vibzcheck/providers/auth_provider.dart';
-import 'package:vibzcheck/providers/room_provider.dart';
-import 'package:vibzcheck/providers/playlist_provider.dart';
-import 'package:vibzcheck/utils/app_theme.dart';
+import 'package:melodex/providers/auth_provider.dart';
+import 'package:melodex/providers/room_provider.dart';
+import 'package:melodex/providers/playlist_provider.dart';
+import 'package:melodex/utils/app_theme.dart';
 
 Widget buildTestApp(Widget child) {
   return MultiProvider(
@@ -24,7 +24,7 @@ void main() {
   testWidgets('app theme applies dark background color', (tester) async {
     await tester.pumpWidget(
       buildTestApp(
-        const Scaffold(body: Center(child: Text('Vibzcheck'))),
+        const Scaffold(body: Center(child: Text('Melodex'))),
       ),
     );
 

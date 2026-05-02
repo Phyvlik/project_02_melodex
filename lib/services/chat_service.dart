@@ -44,7 +44,7 @@ class ChatService {
     await sendMessage(
       roomId: roomId,
       senderUid: 'system',
-      senderName: 'Vibzcheck',
+      senderName: 'Melodex',
       content: content,
       type: type,
       linkedSongId: linkedSongId,

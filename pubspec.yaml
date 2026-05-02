@@ -1,5 +1,5 @@
-name: vibzcheck
-description: "Vibzcheck - collaborative music app where groups vote on the next song together."
+name: melodex
+description: "Melodex - collaborative music app where groups vote on the next song together."
 publish_to: 'none'
 
 version: 1.0.0+1

@@ -13,11 +13,11 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const VibzcheckApp());
+  runApp(const MelodexApp());
 }
 
-class VibzcheckApp extends StatelessWidget {
-  const VibzcheckApp({super.key});
+class MelodexApp extends StatelessWidget {
+  const MelodexApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +28,7 @@ class VibzcheckApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
       ],
       child: MaterialApp(
-        title: 'Vibzcheck',
+        title: 'Melodex',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: const AuthWrapper(),

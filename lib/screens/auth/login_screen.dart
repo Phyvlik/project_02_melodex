@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
                 Text(
-                  'Vibzcheck',
+                  'Melodex',
                   style: Theme.of(context).textTheme.displayMedium?.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
