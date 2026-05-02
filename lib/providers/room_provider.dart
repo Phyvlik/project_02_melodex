@@ -26,6 +26,18 @@ class RoomProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isInRoom => _currentRoom != null;
 
+  void setCurrentRoom(RoomModel room) {
+    _currentRoom = room;
+    _roomSub?.cancel();
+    _roomSub = _roomService.watchRoom(room.id).listen((updated) {
+      if (updated != null) {
+        _currentRoom = updated;
+        notifyListeners();
+      }
+    });
+    notifyListeners();
+  }
+
   void watchUserRooms(String userId) {
     _userRoomsSub?.cancel();
     _userRoomsSub = _roomService.watchUserRooms(userId).listen((rooms) {

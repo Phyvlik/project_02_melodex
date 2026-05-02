@@ -27,6 +27,10 @@ class _RoomScreenState extends State<RoomScreen> {
     super.initState();
     final uid = context.read<AuthProvider>().user?.uid ?? '';
     context.read<PlaylistProvider>().attachRoom(widget.room.id, uid);
+    final roomProvider = context.read<RoomProvider>();
+    if (roomProvider.currentRoom == null) {
+      roomProvider.setCurrentRoom(widget.room);
+    }
   }
 
   Future<bool> _onWillPop() async {
