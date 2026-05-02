@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/room_provider.dart';
 import 'providers/playlist_provider.dart';
@@ -9,11 +10,9 @@ import 'utils/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Firebase.initializeApp requires a valid google-services.json (Android)
-  // or GoogleService-Info.plist (iOS) placed in the platform directories.
-  await Firebase.initializeApp();
-
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const VibzcheckApp());
 }
 
