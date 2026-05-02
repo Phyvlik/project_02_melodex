@@ -51,6 +51,16 @@ class PlaylistService {
     await _playlistRef(roomId).doc(songId).update({'genres': genres});
   }
 
+  Future<void> updateCachedArtPath(
+    String roomId,
+    String songId,
+    String storagePath,
+  ) async {
+    await _playlistRef(roomId)
+        .doc(songId)
+        .update({'cachedAlbumArtPath': storagePath});
+  }
+
   // Songs ordered by vote score descending, unplayed first
   Stream<List<SongModel>> watchPlaylist(String roomId) {
     return _playlistRef(roomId)
