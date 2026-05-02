@@ -7,8 +7,8 @@ import '../utils/constants.dart';
 class SpotifyService {
   // Client credentials - set these from your Spotify developer dashboard
   // In production these should come from a secure backend/Cloud Function
-  static const String _clientId = 'YOUR_SPOTIFY_CLIENT_ID';
-  static const String _clientSecret = 'YOUR_SPOTIFY_CLIENT_SECRET';
+  static const String _clientId = 'b5824514187b4a2181a04c36d6b180e5';
+  static const String _clientSecret = '7285f049050941d4bef4615241b985f4';
 
   String? _accessToken;
   DateTime? _tokenExpiry;
