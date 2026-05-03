@@ -199,6 +199,39 @@ class PlaylistProvider extends ChangeNotifier {
     await _playSong(songId);
   }
 
+  Future<void> playRecommendationNow(RecommendationModel rec) async {
+    if (_roomId == null) return;
+    _recommendations.remove(rec);
+    if (_recommendations.isEmpty && _currentMood.isNotEmpty) {
+      _fetchRecommendations();
+    }
+    notifyListeners();
+
+    final song = SongModel(
+      id: '',
+      spotifyId: rec.spotifyId,
+      title: rec.title,
+      artist: rec.artist,
+      album: '',
+      albumArtUrl: rec.albumArtUrl,
+      durationMs: 0,
+      addedByUid: _userId ?? '',
+      addedByName: _userName,
+      addedAt: DateTime.now(),
+    );
+
+    final saved = await _playlistService.addSong(_roomId!, song);
+
+    try {
+      await _playbackService.play(rec.spotifyId);
+    } catch (_) {}
+
+    await _playlistService.markSongPlayed(_roomId!, saved.id);
+    _currentlyPlayingId = saved.id;
+    notifyListeners();
+    _startPolling();
+  }
+
   Future<void> playTopSong() async {
     if (_songs.isEmpty) {
       if (_recommendations.isNotEmpty) {

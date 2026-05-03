@@ -100,7 +100,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                             isHost: isHost,
                             isPlaying: playlist.currentlyPlayingId == rec.songId,
                             onOverride: isHost
-                                ? () => playlist.applyManualOverride(rec.songId)
+                                ? () => playlist.playRecommendationNow(rec)
                                 : null,
                             onAdd: () async {
                               final auth = context.read<AuthProvider>();
