@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/playlist_provider.dart';
 import '../../providers/room_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../models/song_model.dart';
 
 class RecommendationScreen extends StatefulWidget {
   const RecommendationScreen({super.key});
@@ -102,11 +103,34 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                             rec: playlist.recommendations[i],
                             rank: i + 1,
                             isHost: isHost,
-                            onOverride: isHost
-                                ? () => playlist.applyManualOverride(
-                                      playlist.recommendations[i].songId,
-                                    )
-                                : null,
+                            onAdd: () async {
+  final auth = context.read<AuthProvider>();
+  final user = auth.user;
+  final rec = playlist.recommendations[i];
+
+  if (user == null) return;
+
+  final song = SongModel(
+    id: '',
+    spotifyId: rec.spotifyId,
+    title: rec.title,
+    artist: rec.artist,
+    album: '',
+    albumArtUrl: rec.albumArtUrl,
+    durationMs: 0,
+    addedByUid: user.uid,
+    addedByName: user.displayName,
+    addedAt: DateTime.now(),
+  );
+
+  await playlist.addSong(song, user);
+
+  if (!context.mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Added "${rec.title}" to queue')),
+  );
+},
                           );
                         },
                       ),
@@ -121,13 +145,13 @@ class _RecommendationCard extends StatelessWidget {
   final RecommendationModel rec;
   final int rank;
   final bool isHost;
-  final VoidCallback? onOverride;
+  final VoidCallback? onAdd;
 
   const _RecommendationCard({
     required this.rec,
     required this.rank,
     required this.isHost,
-    this.onOverride,
+    this.onAdd,
   });
 
   @override
@@ -205,12 +229,12 @@ class _RecommendationCard extends StatelessWidget {
               ],
             ),
           ),
-          if (isHost && onOverride != null)
+          if (onAdd != null)
             IconButton(
               icon: const Icon(Icons.play_circle_outline,
                   color: AppColors.primary),
-              onPressed: onOverride,
-              tooltip: 'Play this next',
+              onPressed: onAdd,
+              tooltip: 'Add to Queue',
             ),
         ],
       ),
