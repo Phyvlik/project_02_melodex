@@ -178,68 +178,25 @@ return false;
   }
 }
 
-class _PulsingPlayButton extends StatefulWidget {
+class _PulsingPlayButton extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback onTap;
 
   const _PulsingPlayButton({required this.isPlaying, required this.onTap});
 
   @override
-  State<_PulsingPlayButton> createState() => _PulsingPlayButtonState();
-}
-
-class _PulsingPlayButtonState extends State<_PulsingPlayButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _pulse;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      duration: const Duration(milliseconds: 900),
-      vsync: this,
-    );
-    _pulse = Tween<double>(begin: 1.0, end: 1.06).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
-    if (widget.isPlaying) _ctrl.repeat(reverse: true);
-  }
-
-  @override
-  void didUpdateWidget(_PulsingPlayButton old) {
-    super.didUpdateWidget(old);
-    if (widget.isPlaying && !_ctrl.isAnimating) {
-      _ctrl.repeat(reverse: true);
-    } else if (!widget.isPlaying && _ctrl.isAnimating) {
-      _ctrl.stop();
-      _ctrl.reset();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _pulse,
-      child: SizedBox(
-        width: double.infinity,
+    return SizedBox(
+      width: double.infinity,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
         child: ElevatedButton.icon(
-          icon: Icon(widget.isPlaying ? Icons.skip_next : Icons.play_arrow),
+          key: ValueKey(isPlaying),
+          icon: Icon(isPlaying ? Icons.skip_next : Icons.play_arrow),
           label: Text(
-            widget.isPlaying ? 'Skip to Next Song' : 'Play Top Voted Song',
+            isPlaying ? 'Skip to Next Song' : 'Play Top Voted Song',
           ),
-          onPressed: widget.onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: widget.isPlaying
-                ? AppColors.primary.withAlpha(220)
-                : AppColors.primary,
-          ),
+          onPressed: onTap,
         ),
       ),
     );
