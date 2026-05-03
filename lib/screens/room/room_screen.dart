@@ -27,7 +27,8 @@ class _RoomScreenState extends State<RoomScreen> {
   void initState() {
     super.initState();
     final uid = context.read<AuthProvider>().user?.uid ?? '';
-    context.read<PlaylistProvider>().attachRoom(widget.room.id, uid);
+    final isHost = widget.room.hostUid == uid;
+    context.read<PlaylistProvider>().attachRoom(widget.room.id, uid, isHost: isHost);
     final roomProvider = context.read<RoomProvider>();
     if (roomProvider.currentRoom == null) {
       roomProvider.setCurrentRoom(widget.room);

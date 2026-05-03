@@ -29,6 +29,7 @@ class PlaylistProvider extends ChangeNotifier {
   String? _roomId;
   String? _currentlyPlayingId;
   Timer? _pollTimer;
+  bool _isHost = false;
 
   StreamSubscription<List<SongModel>>? _playlistSub;
   StreamSubscription<Map<String, VoteType>>? _votesSub;
@@ -45,14 +46,24 @@ class PlaylistProvider extends ChangeNotifier {
   VoteType voteFor(String songId) =>
       _userVotes[songId] ?? VoteType.none;
 
-  void attachRoom(String roomId, String userId) {
+  void attachRoom(String roomId, String userId, {bool isHost = false}) {
     if (_roomId == roomId) return;
     _roomId = roomId;
+    _isHost = isHost;
 
     _playlistSub?.cancel();
     _playlistSub = _playlistService.watchPlaylist(roomId).listen((songs) {
+      final wasEmpty = _songs.isEmpty;
       _songs = songs;
       notifyListeners();
+
+      if (_isHost &&
+          wasEmpty &&
+          songs.isNotEmpty &&
+          _currentlyPlayingId == null &&
+          _pollTimer == null) {
+        playTopSong();
+      }
     });
 
     _votesSub?.cancel();
@@ -195,14 +206,24 @@ Future<void> loadSpotifyRecommendations({
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
       final state = await _playbackService.getPlaybackState();
-      if (state == null) return;
+
+      // 204 / null while we own a playing song means the track ended
+      if (state == null) {
+        if (_currentlyPlayingId != null) {
+          _pollTimer?.cancel();
+          _pollTimer = null;
+          _currentlyPlayingId = null;
+          await Future.delayed(const Duration(seconds: 1));
+          await playTopSong();
+        }
+        return;
+      }
 
       if (state.isNearEnd || (!state.isPlaying && _currentlyPlayingId != null)) {
         _pollTimer?.cancel();
         _pollTimer = null;
         _currentlyPlayingId = null;
 
-        // Small delay so Spotify finishes the track before we advance
         await Future.delayed(const Duration(seconds: 2));
         await playTopSong();
       }

@@ -27,7 +27,7 @@ class AppConstants {
   static const double weightListenHistory = 0.2;
 
   // Spotify OAuth (PKCE) for user account connection
-  static const String spotifyClientId = 'bd268cd3fb5c4152899fe59dacd0533b';
+  static const String spotifyClientId = 'b5824514187b4a2181a04c36d6b180e5';
   static const String spotifyRedirectUri = 'melodex://spotify-auth';
   static const String prefSpotifyRefreshToken = 'spotify_refresh_token';
 

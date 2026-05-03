@@ -23,7 +23,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     final room = context.read<RoomProvider>().currentRoom;
     final uid = context.read<AuthProvider>().user?.uid ?? '';
     if (room != null) {
-      context.read<PlaylistProvider>().attachRoom(room.id, uid);
+      final isHost = room.hostUid == uid;
+      context.read<PlaylistProvider>().attachRoom(room.id, uid, isHost: isHost);
     }
   }
 
