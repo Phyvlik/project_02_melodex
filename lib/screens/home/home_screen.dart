@@ -101,6 +101,32 @@ SizedBox(
   ),
 ),
 
+const SizedBox(height: 12),
+SizedBox(
+  width: double.infinity,
+  child: ElevatedButton.icon(
+    icon: const Icon(Icons.play_arrow),
+    label: const Text('Test Spotify Playback'),
+    onPressed: () async {
+      try {
+        await SpotifyService().playTrack('35UO6dWrEPLmeSVXtAysS4');
+
+        if (!context.mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Playback started!')),
+        );
+      } catch (e) {
+        if (!context.mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Playback failed: $e')),
+        );
+      }
+    },
+  ),
+),
+
             const SizedBox(height: 24),
             Row(
               children: [

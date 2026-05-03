@@ -68,6 +68,45 @@ class SpotifyService {
     return token;
   }
 
+  Future<void> playTrack(String spotifyTrackId) async {
+  final token = await getAccessToken();
+
+  final response = await http.put(
+    Uri.parse('https://api.spotify.com/v1/me/player/play'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({
+      'uris': ['spotify:track:$spotifyTrackId'],
+    }),
+  );
+
+  if (response.statusCode != 204) {
+    throw Exception(
+      'Failed to play track: ${response.statusCode} ${response.body}',
+    );
+  }
+}
+Future<String> getAccessToken() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  final token = prefs.getString(AppConstants.prefSpotifyToken);
+  final expiryMillis = prefs.getInt(AppConstants.prefSpotifyExpiry);
+
+  if (token == null || expiryMillis == null) {
+    throw Exception('No Spotify token found. Please connect Spotify first.');
+  }
+
+  final expiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
+
+  if (DateTime.now().isAfter(expiry)) {
+    throw Exception('Spotify token expired. Reconnect Spotify.');
+  }
+
+  return token;
+}
+
   Future<List<SpotifyTrack>> searchTracks(String query) async {
     final token = await _getAccessToken();
     final dio = Dio();
