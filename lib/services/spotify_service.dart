@@ -107,18 +107,21 @@ Future<String> getAccessToken() async {
   return token;
 }
 
-  Future<List<SpotifyTrack>> searchTracks(String query) async {
+  Future<List<SpotifyTrack>> searchTracks(String query, {int offset = 0}) async {
     final token = await _getAccessToken();
     final dio = Dio();
+
+    final params = {
+      'q': query,
+      'type': 'track',
+      'limit': 5,
+      if (offset > 0) 'offset': offset,
+    };
 
     try {
       final response = await dio.get(
         'https://api.spotify.com/v1/search',
-        queryParameters: {
-          'q': query,
-          'type': 'track',
-          'limit': 5,
-        },
+        queryParameters: params,
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',
@@ -133,11 +136,7 @@ Future<String> getAccessToken() async {
         final newToken = await _refreshToken(prefs);
         final retry = await dio.get(
           'https://api.spotify.com/v1/search',
-          queryParameters: {
-            'q': query,
-            'type': 'track',
-            'limit': 5,
-          },
+          queryParameters: params,
           options: Options(
             headers: {
               'Authorization': 'Bearer $newToken',

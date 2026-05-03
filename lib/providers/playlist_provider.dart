@@ -32,6 +32,8 @@ class PlaylistProvider extends ChangeNotifier {
   String? _currentlyPlayingId;
   Timer? _pollTimer;
   bool _isHost = false;
+  String _currentMood = '';
+  int _recOffset = 0;
 
   StreamSubscription<List<SongModel>>? _playlistSub;
   StreamSubscription<Map<String, VoteType>>? _votesSub;
@@ -156,24 +158,33 @@ class PlaylistProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-Future<void> loadSpotifyRecommendations({
-  required String currentMood,
-}) async {
-  _isLoadingRecs = true;
-  notifyListeners();
-
-  try {
-    final query = '$currentMood music';
-
-    _recommendations =
-        await _recommendationService.getSpotifySuggestions(query: query);
-  } catch (e) {
-    _recommendations = [];
-  } finally {
-    _isLoadingRecs = false;
-    notifyListeners();
+  Future<void> loadSpotifyRecommendations({
+    required String currentMood,
+  }) async {
+    _currentMood = currentMood;
+    _recOffset = 0;
+    await _fetchRecommendations();
   }
-}
+
+  Future<void> _fetchRecommendations() async {
+    _isLoadingRecs = true;
+    notifyListeners();
+
+    try {
+      final query = '$_currentMood music';
+      final fresh = await _recommendationService.getSpotifySuggestions(
+        query: query,
+        offset: _recOffset,
+      );
+      _recOffset += fresh.length;
+      _recommendations = fresh;
+    } catch (_) {
+      _recommendations = [];
+    } finally {
+      _isLoadingRecs = false;
+      notifyListeners();
+    }
+  }
   Future<void> applyManualOverride(String songId) async {
     if (_roomId == null) return;
     await _recommendationService.saveManualOverride(_roomId!, songId);
@@ -195,6 +206,12 @@ Future<void> loadSpotifyRecommendations({
     if (_recommendations.isEmpty || _roomId == null) return;
     final rec = _recommendations.first;
     _recommendations.removeAt(0);
+
+    // Refill in the background when the list is running low
+    if (_recommendations.isEmpty && _currentMood.isNotEmpty) {
+      _fetchRecommendations();
+    }
+
     notifyListeners();
 
     final song = SongModel(

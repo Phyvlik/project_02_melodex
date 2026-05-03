@@ -173,8 +173,9 @@ class RecommendationService {
   Future<List<RecommendationModel>> getSpotifySuggestions({
   required String query,
   int topN = 5,
+  int offset = 0,
 }) async {
-  final tracks = await _spotifyService.searchTracks(query);
+  final tracks = await _spotifyService.searchTracks(query, offset: offset);
 
   return tracks.take(topN).map((track) {
     return RecommendationModel(
