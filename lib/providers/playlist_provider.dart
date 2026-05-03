@@ -161,8 +161,10 @@ class PlaylistProvider extends ChangeNotifier {
   Future<void> loadSpotifyRecommendations({
     required String currentMood,
   }) async {
+    if (_currentMood != currentMood) {
+      _recOffset = 0;
+    }
     _currentMood = currentMood;
-    _recOffset = 0;
     await _fetchRecommendations();
   }
 
