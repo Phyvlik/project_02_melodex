@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/recommendation_model.dart';
-import '../../models/user_model.dart' show UserModel;
 import '../../providers/auth_provider.dart';
 import '../../providers/playlist_provider.dart';
 import '../../providers/room_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../models/song_model.dart';
 
 class RecommendationScreen extends StatefulWidget {
   const RecommendationScreen({super.key});
@@ -26,14 +26,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     final room = context.read<RoomProvider>().currentRoom;
     if (room == null) return;
 
-    // Fetch user profiles for all room members to power history scoring
-    final auth = context.read<AuthProvider>();
-    final List<UserModel> members =
-        auth.user != null ? [auth.user!] : [];
-
-    await context.read<PlaylistProvider>().loadRecommendations(
+    await context.read<PlaylistProvider>().loadSpotifyRecommendations(
           currentMood: room.currentMood,
-          roomMembers: members,
         );
   }
 
@@ -108,6 +102,33 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                             onOverride: isHost
                                 ? () => playlist.applyManualOverride(rec.songId)
                                 : null,
+                            onAdd: () async {
+                              final auth = context.read<AuthProvider>();
+                              final user = auth.user;
+                              if (user == null) return;
+
+                              final song = SongModel(
+                                id: '',
+                                spotifyId: rec.spotifyId,
+                                title: rec.title,
+                                artist: rec.artist,
+                                album: '',
+                                albumArtUrl: rec.albumArtUrl,
+                                durationMs: 0,
+                                addedByUid: user.uid,
+                                addedByName: user.displayName,
+                                addedAt: DateTime.now(),
+                              );
+
+                              await playlist.addSong(song, user);
+
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Added "${rec.title}" to queue'),
+                                ),
+                              );
+                            },
                           );
                         },
                       ),
@@ -124,6 +145,7 @@ class _RecommendationCard extends StatelessWidget {
   final bool isHost;
   final bool isPlaying;
   final VoidCallback? onOverride;
+  final VoidCallback? onAdd;
 
   const _RecommendationCard({
     required this.rec,
@@ -131,6 +153,7 @@ class _RecommendationCard extends StatelessWidget {
     required this.isHost,
     required this.isPlaying,
     this.onOverride,
+    this.onAdd,
   });
 
   @override
@@ -210,6 +233,13 @@ class _RecommendationCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onAdd != null)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline,
+                  color: AppColors.primary),
+              onPressed: onAdd,
+              tooltip: 'Add to queue',
+            ),
           if (isHost && onOverride != null)
             IconButton(
               icon: const Icon(Icons.play_circle_outline,

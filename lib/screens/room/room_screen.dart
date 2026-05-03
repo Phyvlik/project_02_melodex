@@ -9,6 +9,7 @@ import '../../utils/app_theme.dart';
 import '../playlist/playlist_screen.dart';
 import '../chat/chat_screen.dart';
 import '../recommendation/recommendation_screen.dart';
+import '../../services/spotify_service.dart';
 
 class RoomScreen extends StatefulWidget {
   final RoomModel room;
@@ -58,11 +59,13 @@ class _RoomScreenState extends State<RoomScreen> {
       ),
     );
 
-    if (confirmed == true) {
-      final user = auth.user!;
-      if (mounted) await roomProvider.leaveRoom(user);
-    }
-    return confirmed ?? false;
+if (confirmed == true) {
+  final user = auth.user!;
+  if (mounted) {
+    Navigator.pop(context); // Go back to home screen
+  }
+}
+return false;
   }
 
   @override
@@ -126,14 +129,62 @@ class _RoomScreenState extends State<RoomScreen> {
               ),
           ],
         ),
-        body: IndexedStack(
-          index: _tabIndex,
-          children: const [
-            PlaylistScreen(),
-            ChatScreen(),
-            RecommendationScreen(),
-          ],
+        body: Column(
+  children: [
+    // Host-only play button
+    if (isHost)
+      Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.play_arrow),
+          label: const Text('Play Top Voted Song'),
+          onPressed: () async {
+            try {
+              final playlistProvider = context.read<PlaylistProvider>();
+              final songs = playlistProvider.songs; 
+
+              if (songs.isEmpty) return;
+
+              final unplayedSongs = songs.where((song) => !song.isPlayed).toList();
+
+if (unplayedSongs.isEmpty) {
+  throw Exception('No unplayed songs in the queue.');
+}
+
+final winningSong = unplayedSongs.reduce(
+  (a, b) => a.voteScore >= b.voteScore ? a : b,
+);
+
+await SpotifyService().playTrack(winningSong.spotifyId);
+              if (!context.mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Now playing: ${winningSong.title}')),
+              );
+            } catch (e) {
+              if (!context.mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: $e')),
+              );
+            }
+          },
         ),
+      ),
+
+    // 👇 existing content
+    Expanded(
+      child: IndexedStack(
+        index: _tabIndex,
+        children: const [
+          PlaylistScreen(),
+          ChatScreen(),
+          RecommendationScreen(),
+        ],
+      ),
+    ),
+  ],
+),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _tabIndex,
           onTap: (i) => setState(() => _tabIndex = i),

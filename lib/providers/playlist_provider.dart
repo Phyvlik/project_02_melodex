@@ -141,7 +141,24 @@ class PlaylistProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+Future<void> loadSpotifyRecommendations({
+  required String currentMood,
+}) async {
+  _isLoadingRecs = true;
+  notifyListeners();
 
+  try {
+    final query = '$currentMood music';
+
+    _recommendations =
+        await _recommendationService.getSpotifySuggestions(query: query);
+  } catch (e) {
+    _recommendations = [];
+  } finally {
+    _isLoadingRecs = false;
+    notifyListeners();
+  }
+}
   Future<void> applyManualOverride(String songId) async {
     if (_roomId == null) return;
     await _recommendationService.saveManualOverride(_roomId!, songId);
