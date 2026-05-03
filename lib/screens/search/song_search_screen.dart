@@ -49,7 +49,16 @@ class _SongSearchScreenState extends State<SongSearchScreen> {
     final auth = context.read<AuthProvider>();
     final playlist = context.read<PlaylistProvider>();
     final user = auth.user!;
+  final alreadyExists = playlist.songs.any(
+    (song) => song.spotifyId == track.id,
+  );
 
+  if (alreadyExists) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('"${track.name}" is already in the queue')),
+    );
+    return;
+  }
     final song = _spotify.trackToSong(
       track,
       addedByUid: user.uid,

@@ -109,6 +109,16 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   final rec = playlist.recommendations[i];
 
   if (user == null) return;
+final alreadyExists = playlist.songs.any(
+  (song) => song.spotifyId == rec.spotifyId,
+);
+
+if (alreadyExists) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('"${rec.title}" is already in the queue')),
+  );
+  return;
+}
 
   final song = SongModel(
     id: '',
