@@ -6,6 +6,7 @@ import '../models/vote_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../utils/app_theme.dart';
+import 'animated_equalizer.dart';
 
 class SongCard extends StatelessWidget {
   final SongModel song;
@@ -24,35 +25,61 @@ class SongCard extends StatelessWidget {
     final playlist = context.watch<PlaylistProvider>();
     final uid = context.read<AuthProvider>().user?.uid ?? '';
     final currentVote = playlist.voteFor(song.id);
+    final isPlaying = playlist.currentlyPlayingId == song.id;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
-        color: AppColors.cardColor,
+        color: isPlaying
+            ? AppColors.primary.withAlpha(20)
+            : AppColors.cardColor,
         borderRadius: BorderRadius.circular(10),
+        border: isPlaying
+            ? Border.all(color: AppColors.primary.withAlpha(120), width: 1.5)
+            : null,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: CachedNetworkImage(
-              imageUrl: song.cachedAlbumArtPath ?? song.albumArtUrl,
-              width: 52,
-              height: 52,
-              fit: BoxFit.cover,
-              placeholder: (_, __) => Container(
-                width: 52,
-                height: 52,
-                color: AppColors.surfaceVariant,
-                child: const Icon(Icons.music_note, color: AppColors.onSurface),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: CachedNetworkImage(
+                  imageUrl: song.cachedAlbumArtPath ?? song.albumArtUrl,
+                  width: 52,
+                  height: 52,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => Container(
+                    width: 52,
+                    height: 52,
+                    color: AppColors.surfaceVariant,
+                    child: const Icon(Icons.music_note,
+                        color: AppColors.onSurface),
+                  ),
+                  errorWidget: (_, _, _) => Container(
+                    width: 52,
+                    height: 52,
+                    color: AppColors.surfaceVariant,
+                    child: const Icon(Icons.broken_image,
+                        color: AppColors.onSurface),
+                  ),
+                ),
               ),
-              errorWidget: (_, __, ___) => Container(
-                width: 52,
-                height: 52,
-                color: AppColors.surfaceVariant,
-                child: const Icon(Icons.broken_image, color: AppColors.onSurface),
-              ),
-            ),
+              if (isPlaying)
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(120),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Center(
+                    child: AnimatedEqualizer(size: 28),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -61,10 +88,10 @@ class SongCard extends StatelessWidget {
               children: [
                 Text(
                   song.title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isPlaying ? AppColors.primary : null,
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -100,16 +127,27 @@ class SongCard extends StatelessWidget {
                 activeColor: AppColors.vote,
                 onTap: () => playlist.castVote(uid, song.id, VoteType.up),
               ),
-              Text(
-                '${song.voteScore}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: song.voteScore > 0
-                      ? AppColors.vote
-                      : song.voteScore < 0
-                          ? AppColors.downvote
-                          : AppColors.onSurface,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) => SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, -0.5),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: Text(
+                  '${song.voteScore}',
+                  key: ValueKey(song.voteScore),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: song.voteScore > 0
+                        ? AppColors.vote
+                        : song.voteScore < 0
+                            ? AppColors.downvote
+                            : AppColors.onSurface,
+                  ),
                 ),
               ),
               _VoteButton(

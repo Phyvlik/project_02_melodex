@@ -25,6 +25,33 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _enterRoom(BuildContext context, room) {
+    context.read<RoomProvider>().watchUserRooms(
+          context.read<AuthProvider>().user!.uid,
+        );
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, animation, __) => RoomScreen(room: room),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.06),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              ),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 280),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -74,59 +101,29 @@ class _HomeScreenState extends State<HomeScreen> {
               'Ready to set the vibe?',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-
             const SizedBox(height: 16),
-SizedBox(
-  width: double.infinity,
-  child: ElevatedButton.icon(
-    icon: const Icon(Icons.music_note),
-    label: const Text('Connect Spotify'),
-   onPressed: () async {
-  try {
-    await SpotifyService().connectSpotify();
-
-    if (!context.mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Spotify connected!')),
-    );
-  } catch (e) {
-    if (!context.mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Spotify connection failed: $e')),
-    );
-  }
-},
-  ),
-),
-
-const SizedBox(height: 12),
-SizedBox(
-  width: double.infinity,
-  child: ElevatedButton.icon(
-    icon: const Icon(Icons.play_arrow),
-    label: const Text('Test Spotify Playback'),
-    onPressed: () async {
-      try {
-        await SpotifyService().playTrack('35UO6dWrEPLmeSVXtAysS4');
-
-        if (!context.mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Playback started!')),
-        );
-      } catch (e) {
-        if (!context.mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Playback failed: $e')),
-        );
-      }
-    },
-  ),
-),
-
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.music_note),
+                label: const Text('Connect Spotify'),
+                onPressed: () async {
+                  try {
+                    await SpotifyService().connectSpotify();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Spotify connected!')),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('Spotify connection failed: $e')),
+                    );
+                  }
+                },
+              ),
+            ),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -189,41 +186,46 @@ SizedBox(
                     )
                   : ListView.separated(
                       itemCount: roomProvider.userRooms.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: 8),
                       itemBuilder: (context, i) {
                         final room = roomProvider.userRooms[i];
-                        return ListTile(
-                          tileColor: AppColors.cardColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          leading: CircleAvatar(
-                            backgroundColor: AppColors.primary.withAlpha(40),
-                            child: const Icon(
-                              Icons.headphones,
-                              color: AppColors.primary,
+                        return TweenAnimationBuilder<double>(
+                          key: ValueKey(room.id),
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: Duration(milliseconds: 250 + i * 50),
+                          curve: Curves.easeOut,
+                          builder: (context, value, child) => Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: child,
                             ),
                           ),
-                          title: Text(room.name),
-                          subtitle: Text(
-                            '${room.memberCount} member${room.memberCount == 1 ? '' : 's'} - ${room.currentMood}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          trailing: const Icon(
-                            Icons.chevron_right,
-                            color: AppColors.onSurface,
-                          ),
-                          onTap: () {
-                            context
-                                .read<RoomProvider>()
-                                .watchUserRooms(auth.user!.uid);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => RoomScreen(room: room),
+                          child: ListTile(
+                            tileColor: AppColors.cardColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  AppColors.primary.withAlpha(40),
+                              child: const Icon(
+                                Icons.headphones,
+                                color: AppColors.primary,
                               ),
-                            );
-                          },
+                            ),
+                            title: Text(room.name),
+                            subtitle: Text(
+                              '${room.memberCount} member${room.memberCount == 1 ? '' : 's'} - ${room.currentMood}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.onSurface,
+                            ),
+                            onTap: () => _enterRoom(context, room),
+                          ),
                         );
                       },
                     ),
@@ -235,7 +237,7 @@ SizedBox(
   }
 }
 
-class _ActionCard extends StatelessWidget {
+class _ActionCard extends StatefulWidget {
   final IconData icon;
   final String label;
   final Color color;
@@ -249,28 +251,63 @@ class _ActionCard extends StatelessWidget {
   });
 
   @override
+  State<_ActionCard> createState() => _ActionCardState();
+}
+
+class _ActionCardState extends State<_ActionCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.93).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: color.withAlpha(30),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withAlpha(80)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: widget.color.withAlpha(30),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: widget.color.withAlpha(80)),
+          ),
+          child: Column(
+            children: [
+              Icon(widget.icon, color: widget.color, size: 32),
+              const SizedBox(height: 8),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.color,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

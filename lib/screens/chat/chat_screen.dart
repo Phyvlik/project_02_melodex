@@ -106,9 +106,23 @@ class _ChatScreenState extends State<ChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (context, i) {
                   final msg = messages[i];
-                  return ChatBubble(
-                    message: msg,
-                    isMe: msg.senderUid == uid,
+                  final isMe = msg.senderUid == uid;
+                  return TweenAnimationBuilder<double>(
+                    key: ValueKey(msg.id),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) => Opacity(
+                      opacity: value,
+                      child: Transform.translate(
+                        offset: Offset(
+                          isMe ? 20 * (1 - value) : -20 * (1 - value),
+                          0,
+                        ),
+                        child: child,
+                      ),
+                    ),
+                    child: ChatBubble(message: msg, isMe: isMe),
                   );
                 },
               );

@@ -9,7 +9,6 @@ import '../../utils/app_theme.dart';
 import '../playlist/playlist_screen.dart';
 import '../chat/chat_screen.dart';
 import '../recommendation/recommendation_screen.dart';
-import '../../services/spotify_service.dart';
 
 class RoomScreen extends StatefulWidget {
   final RoomModel room;
@@ -131,50 +130,20 @@ return false;
           ],
         ),
         body: Column(
-  children: [
-    // Host-only play button
-    if (isHost)
-      Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: ElevatedButton.icon(
-          icon: const Icon(Icons.play_arrow),
-          label: const Text('Play Top Voted Song'),
-          onPressed: () async {
-            try {
-              final playlistProvider = context.read<PlaylistProvider>();
-              final songs = playlistProvider.songs; 
-
-              if (songs.isEmpty) return;
-
-              final unplayedSongs = songs.where((song) => !song.isPlayed).toList();
-
-if (unplayedSongs.isEmpty) {
-  throw Exception('No unplayed songs in the queue.');
-}
-
-final winningSong = unplayedSongs.reduce(
-  (a, b) => a.voteScore >= b.voteScore ? a : b,
-);
-
-await SpotifyService().playTrack(winningSong.spotifyId);
-              if (!context.mounted) return;
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Now playing: ${winningSong.title}')),
-              );
-            } catch (e) {
-              if (!context.mounted) return;
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: $e')),
-              );
-            }
-          },
-        ),
-      ),
-
-    // 👇 existing content
-    Expanded(
+          children: [
+            if (isHost)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: _PulsingPlayButton(
+                  isPlaying: context
+                          .watch<PlaylistProvider>()
+                          .currentlyPlayingId !=
+                      null,
+                  onTap: () =>
+                      context.read<PlaylistProvider>().playTopSong(),
+                ),
+              ),
+            Expanded(
       child: IndexedStack(
         index: _tabIndex,
         children: const [
@@ -203,6 +172,74 @@ await SpotifyService().playTrack(winningSong.spotifyId);
               label: 'Up Next',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PulsingPlayButton extends StatefulWidget {
+  final bool isPlaying;
+  final VoidCallback onTap;
+
+  const _PulsingPlayButton({required this.isPlaying, required this.onTap});
+
+  @override
+  State<_PulsingPlayButton> createState() => _PulsingPlayButtonState();
+}
+
+class _PulsingPlayButtonState extends State<_PulsingPlayButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 900),
+      vsync: this,
+    );
+    _pulse = Tween<double>(begin: 1.0, end: 1.06).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+    if (widget.isPlaying) _ctrl.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(_PulsingPlayButton old) {
+    super.didUpdateWidget(old);
+    if (widget.isPlaying && !_ctrl.isAnimating) {
+      _ctrl.repeat(reverse: true);
+    } else if (!widget.isPlaying && _ctrl.isAnimating) {
+      _ctrl.stop();
+      _ctrl.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _pulse,
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: Icon(widget.isPlaying ? Icons.skip_next : Icons.play_arrow),
+          label: Text(
+            widget.isPlaying ? 'Skip to Next Song' : 'Play Top Voted Song',
+          ),
+          onPressed: widget.onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: widget.isPlaying
+                ? AppColors.primary.withAlpha(220)
+                : AppColors.primary,
+          ),
         ),
       ),
     );
