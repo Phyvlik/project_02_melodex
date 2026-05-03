@@ -135,7 +135,7 @@ class SongCard extends StatelessWidget {
   }
 }
 
-class _VoteButton extends StatelessWidget {
+class _VoteButton extends StatefulWidget {
   final IconData icon;
   final bool active;
   final Color activeColor;
@@ -149,13 +149,48 @@ class _VoteButton extends StatelessWidget {
   });
 
   @override
+  State<_VoteButton> createState() => _VoteButtonState();
+}
+
+class _VoteButtonState extends State<_VoteButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 120),
+      vsync: this,
+    );
+    _scale = Tween<double>(begin: 1.0, end: 1.5).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onTap() {
+    _ctrl.forward().then((_) => _ctrl.reverse());
+    widget.onTap();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Icon(
-        icon,
-        size: 26,
-        color: active ? activeColor : AppColors.onSurface,
+      onTap: _onTap,
+      child: ScaleTransition(
+        scale: _scale,
+        child: Icon(
+          widget.icon,
+          size: 26,
+          color: widget.active ? widget.activeColor : AppColors.onSurface,
+        ),
       ),
     );
   }

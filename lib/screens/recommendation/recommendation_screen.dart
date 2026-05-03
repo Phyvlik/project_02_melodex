@@ -94,7 +94,19 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                             const SizedBox(height: 8),
                         itemBuilder: (context, i) {
                           final rec = playlist.recommendations[i];
-                          return _RecommendationCard(
+                          return TweenAnimationBuilder<double>(
+                            key: ValueKey(rec.spotifyId),
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration: Duration(milliseconds: 250 + i * 50),
+                            curve: Curves.easeOut,
+                            builder: (context, value, child) => Opacity(
+                              opacity: value,
+                              child: Transform.translate(
+                                offset: Offset(0, 16 * (1 - value)),
+                                child: child,
+                              ),
+                            ),
+                            child: _RecommendationCard(
                             rec: rec,
                             rank: i + 1,
                             isHost: isHost,
@@ -129,6 +141,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                                 ),
                               );
                             },
+                          ),
                           );
                         },
                       ),

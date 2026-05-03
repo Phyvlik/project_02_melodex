@@ -71,19 +71,32 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                   separatorBuilder: (context, i) => const SizedBox(height: 6),
                   itemBuilder: (context, i) {
                     final song = playlist.songs[i];
-                    return SongCard(
-                      song: song,
-                      isHost: room?.hostUid == uid,
-                      onTagTap: () => showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: AppColors.surface,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(16),
-                          ),
+                    return TweenAnimationBuilder<double>(
+                      key: ValueKey(song.id),
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: Duration(milliseconds: 250 + i * 40),
+                      curve: Curves.easeOut,
+                      builder: (context, value, child) => Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 16 * (1 - value)),
+                          child: child,
                         ),
-                        builder: (_) => MoodTagSheet(song: song),
+                      ),
+                      child: SongCard(
+                        song: song,
+                        isHost: room?.hostUid == uid,
+                        onTagTap: () => showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: AppColors.surface,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
+                          builder: (_) => MoodTagSheet(song: song),
+                        ),
                       ),
                     );
                   },
