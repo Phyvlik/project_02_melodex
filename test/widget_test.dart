@@ -28,8 +28,8 @@ void main() {
       ),
     );
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
-    expect(scaffold.backgroundColor, AppColors.background);
+    final context = tester.element(find.text('Melodex'));
+    expect(Theme.of(context).scaffoldBackgroundColor, AppColors.background);
   });
 
   testWidgets('sign-in form has email, password, and submit button',
