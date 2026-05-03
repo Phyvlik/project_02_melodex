@@ -9,6 +9,7 @@ import '../services/vote_service.dart';
 import '../services/recommendation_service.dart';
 import '../services/storage_service.dart';
 import '../services/chat_service.dart';
+import '../services/spotify_playback_service.dart';
 import '../models/chat_message_model.dart';
 
 class PlaylistProvider extends ChangeNotifier {
@@ -17,6 +18,7 @@ class PlaylistProvider extends ChangeNotifier {
   final RecommendationService _recommendationService = RecommendationService();
   final StorageService _storageService = StorageService();
   final ChatService _chatService = ChatService();
+  final SpotifyPlaybackService _playbackService = SpotifyPlaybackService();
 
   List<SongModel> _songs = [];
   Map<String, VoteType> _userVotes = {};
@@ -25,6 +27,8 @@ class PlaylistProvider extends ChangeNotifier {
   bool _isLoadingRecs = false;
   String? _errorMessage;
   String? _roomId;
+  String? _currentlyPlayingId;
+  Timer? _pollTimer;
 
   StreamSubscription<List<SongModel>>? _playlistSub;
   StreamSubscription<Map<String, VoteType>>? _votesSub;
@@ -36,6 +40,7 @@ class PlaylistProvider extends ChangeNotifier {
   bool get isLoadingRecs => _isLoadingRecs;
   String? get errorMessage => _errorMessage;
   bool get isEmpty => _songs.isEmpty;
+  String? get currentlyPlayingId => _currentlyPlayingId;
 
   VoteType voteFor(String songId) =>
       _userVotes[songId] ?? VoteType.none;
@@ -140,6 +145,51 @@ class PlaylistProvider extends ChangeNotifier {
   Future<void> applyManualOverride(String songId) async {
     if (_roomId == null) return;
     await _recommendationService.saveManualOverride(_roomId!, songId);
+    await _playSong(songId);
+  }
+
+  Future<void> playTopSong() async {
+    if (_songs.isEmpty) return;
+    final top = _songs.first;
+    await _playSong(top.id);
+  }
+
+  Future<void> _playSong(String songId) async {
+    if (_roomId == null) return;
+    final song = _songs.firstWhere(
+      (s) => s.id == songId,
+      orElse: () => _songs.first,
+    );
+
+    try {
+      await _playbackService.play(song.spotifyId);
+    } catch (_) {
+      // Spotify not connected or no active device -- still mark played
+    }
+
+    await _playlistService.markSongPlayed(_roomId!, songId);
+    _currentlyPlayingId = songId;
+    notifyListeners();
+
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
+      final state = await _playbackService.getPlaybackState();
+      if (state == null) return;
+
+      if (state.isNearEnd || (!state.isPlaying && _currentlyPlayingId != null)) {
+        _pollTimer?.cancel();
+        _pollTimer = null;
+        _currentlyPlayingId = null;
+
+        // Small delay so Spotify finishes the track before we advance
+        await Future.delayed(const Duration(seconds: 2));
+        await playTopSong();
+      }
+    });
   }
 
   void clearError() {
@@ -154,6 +204,7 @@ class PlaylistProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _playlistSub?.cancel();
     _votesSub?.cancel();
     super.dispose();

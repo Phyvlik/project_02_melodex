@@ -99,14 +99,14 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                         separatorBuilder: (context, i) =>
                             const SizedBox(height: 8),
                         itemBuilder: (context, i) {
+                          final rec = playlist.recommendations[i];
                           return _RecommendationCard(
-                            rec: playlist.recommendations[i],
+                            rec: rec,
                             rank: i + 1,
                             isHost: isHost,
+                            isPlaying: playlist.currentlyPlayingId == rec.songId,
                             onOverride: isHost
-                                ? () => playlist.applyManualOverride(
-                                      playlist.recommendations[i].songId,
-                                    )
+                                ? () => playlist.applyManualOverride(rec.songId)
                                 : null,
                           );
                         },
@@ -122,12 +122,14 @@ class _RecommendationCard extends StatelessWidget {
   final RecommendationModel rec;
   final int rank;
   final bool isHost;
+  final bool isPlaying;
   final VoidCallback? onOverride;
 
   const _RecommendationCard({
     required this.rec,
     required this.rank,
     required this.isHost,
+    required this.isPlaying,
     this.onOverride,
   });
 
@@ -144,14 +146,16 @@ class _RecommendationCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          Text(
-            '$rank',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: rank == 1 ? AppColors.primary : AppColors.onSurface,
-            ),
-          ),
+          isPlaying
+              ? const Icon(Icons.equalizer, color: AppColors.primary, size: 26)
+              : Text(
+                  '$rank',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: rank == 1 ? AppColors.primary : AppColors.onSurface,
+                  ),
+                ),
           const SizedBox(width: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
