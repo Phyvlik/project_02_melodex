@@ -193,7 +193,10 @@ flutter run
 flutter test
 ```
 
-Widget tests cover: dark theme application, sign-in form field presence, empty queue state, and song card vote score rendering.
+16 tests across two files:
+
+- `test/recommendation_scoring_test.dart` -- 12 unit tests covering scoring weights, formula correctness, score clamping, mood/history penalties, model construction, and app constants
+- `test/widget_test.dart` -- 4 widget tests covering dark theme application, sign-in form field presence, empty queue state, and vote score rendering
 
 ---
 
