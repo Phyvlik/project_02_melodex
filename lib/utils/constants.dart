@@ -26,6 +26,12 @@ class AppConstants {
   static const double weightMood = 0.3;
   static const double weightListenHistory = 0.2;
 
+  //logging in to user spotify account
+  static const String spotifyClientId = 'YOUR_CLIENT_ID_HERE';
+static const String spotifyRedirectUri = 'melodex://spotify-auth';
+
+static const String prefSpotifyRefreshToken = 'spotify_refresh_token';
+
   // Mood options shown to users
   static const List<String> moodOptions = [
     'hype',

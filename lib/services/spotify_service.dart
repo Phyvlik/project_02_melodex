@@ -4,6 +4,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song_model.dart';
 import '../utils/constants.dart';
+import 'dart:async';
+import 'dart:math';
+import 'package:app_links/app_links.dart';
+import 'package:crypto/crypto.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SpotifyService {
   // Client credentials - set these from your Spotify developer dashboard
@@ -141,6 +146,109 @@ class SpotifyService {
       genres: genres,
     );
   }
+  final AppLinks _appLinks = AppLinks();
+
+String? _codeVerifier;
+
+String _generateCodeVerifier() {
+  const chars =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  final rand = Random.secure();
+
+  return List.generate(
+    64,
+    (_) => chars[rand.nextInt(chars.length)],
+  ).join();
+}
+
+String _generateCodeChallenge(String verifier) {
+  final bytes = utf8.encode(verifier);
+  final digest = sha256.convert(bytes);
+
+  return base64UrlEncode(digest.bytes).replaceAll('=', '');
+}
+
+Future<void> connectSpotify() async {
+  _codeVerifier = _generateCodeVerifier();
+  final challenge = _generateCodeChallenge(_codeVerifier!);
+
+  final authUrl = Uri.https(
+    'accounts.spotify.com',
+    '/authorize',
+    {
+      'client_id': AppConstants.spotifyClientId,
+      'response_type': 'code',
+      'redirect_uri': AppConstants.spotifyRedirectUri,
+      'scope':
+          'user-read-playback-state user-modify-playback-state user-read-currently-playing',
+      'code_challenge_method': 'S256',
+      'code_challenge': challenge,
+    },
+  );
+
+  await launchUrl(authUrl, mode: LaunchMode.externalApplication);
+
+  final callbackUri = await _appLinks.uriLinkStream.firstWhere(
+    (uri) => uri.toString().startsWith(AppConstants.spotifyRedirectUri),
+  );
+
+  final code = callbackUri.queryParameters['code'];
+
+  if (code == null) {
+    throw Exception('Spotify login failed: no authorization code returned.');
+  }
+
+  await _exchangeCodeForToken(code);
+}
+
+Future<void> _exchangeCodeForToken(String code) async {
+  if (_codeVerifier == null) {
+    throw Exception('Missing Spotify code verifier.');
+  }
+
+  final response = await http.post(
+    Uri.parse(AppConstants.spotifyTokenUrl),
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: {
+      'client_id': AppConstants.spotifyClientId,
+      'grant_type': 'authorization_code',
+      'code': code,
+      'redirect_uri': AppConstants.spotifyRedirectUri,
+      'code_verifier': _codeVerifier!,
+    },
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Spotify token exchange failed: ${response.body}');
+  }
+
+  final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+  final accessToken = body['access_token'] as String;
+  final refreshToken = body['refresh_token'] as String?;
+  final expiresIn = body['expires_in'] as int;
+
+  final expiry = DateTime.now().add(Duration(seconds: expiresIn));
+
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(AppConstants.prefSpotifyToken, accessToken);
+  await prefs.setInt(
+    AppConstants.prefSpotifyExpiry,
+    expiry.millisecondsSinceEpoch,
+  );
+
+  if (refreshToken != null) {
+    await prefs.setString(
+      AppConstants.prefSpotifyRefreshToken,
+      refreshToken,
+    );
+  }
+
+  _accessToken = accessToken;
+  _tokenExpiry = expiry;
+}
 }
 
 class SpotifyTrack {

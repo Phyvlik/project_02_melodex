@@ -6,6 +6,7 @@ import '../../utils/app_theme.dart';
 import '../room/create_room_screen.dart';
 import '../room/join_room_screen.dart';
 import '../room/room_screen.dart';
+import '../../services/spotify_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -73,6 +74,33 @@ class _HomeScreenState extends State<HomeScreen> {
               'Ready to set the vibe?',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+
+            const SizedBox(height: 16),
+SizedBox(
+  width: double.infinity,
+  child: ElevatedButton.icon(
+    icon: const Icon(Icons.music_note),
+    label: const Text('Connect Spotify'),
+   onPressed: () async {
+  try {
+    await SpotifyService().connectSpotify();
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Spotify connected!')),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Spotify connection failed: $e')),
+    );
+  }
+},
+  ),
+),
+
             const SizedBox(height: 24),
             Row(
               children: [
@@ -135,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   : ListView.separated(
                       itemCount: roomProvider.userRooms.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, i) {
                         final room = roomProvider.userRooms[i];
                         return ListTile(
