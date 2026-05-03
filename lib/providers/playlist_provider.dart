@@ -284,7 +284,7 @@ class PlaylistProvider extends ChangeNotifier {
         return;
       }
 
-      if (state.isNearEnd || (!state.isPlaying && _currentlyPlayingId != null)) {
+      if (state.isNearEnd) {
         _pollTimer?.cancel();
         _pollTimer = null;
         _currentlyPlayingId = null;
