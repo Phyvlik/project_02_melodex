@@ -59,11 +59,13 @@ class _RoomScreenState extends State<RoomScreen> {
       ),
     );
 
-    if (confirmed == true) {
-      final user = auth.user!;
-      if (mounted) await roomProvider.leaveRoom(user);
-    }
-    return confirmed ?? false;
+if (confirmed == true) {
+  final user = auth.user!;
+  if (mounted) {
+    Navigator.pop(context); // Go back to home screen
+  }
+}
+return false;
   }
 
   @override
@@ -129,7 +131,7 @@ class _RoomScreenState extends State<RoomScreen> {
         ),
         body: Column(
   children: [
-    // 🔥 NEW BUTTON (only show for host)
+    // Host-only play button
     if (isHost)
       Padding(
         padding: const EdgeInsets.all(8.0),
@@ -139,7 +141,7 @@ class _RoomScreenState extends State<RoomScreen> {
           onPressed: () async {
             try {
               final playlistProvider = context.read<PlaylistProvider>();
-              final songs = playlistProvider.songs; // adjust if needed
+              final songs = playlistProvider.songs; 
 
               if (songs.isEmpty) return;
 

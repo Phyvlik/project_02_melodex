@@ -123,4 +123,12 @@ class RoomService {
         .snapshots()
         .map((snap) => snap.docs.map(RoomModel.fromFirestore).toList());
   }
+  Future<void> markSongAsPlayed(String roomId, String songId) async {
+  await FirebaseFirestore.instance
+      .collection('rooms')
+      .doc(roomId)
+      .collection('songs')
+      .doc(songId)
+      .update({'isPlayed': true});
+}
 }
