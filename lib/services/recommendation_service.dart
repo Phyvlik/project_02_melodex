@@ -3,6 +3,7 @@ import '../models/song_model.dart';
 import '../models/recommendation_model.dart';
 import '../models/user_model.dart';
 import '../utils/constants.dart';
+import '../services/spotify_service.dart';
 
 // Scoring rules (transparent if/then logic as required by must-solve challenge):
 //
@@ -15,6 +16,7 @@ import '../utils/constants.dart';
 // weightHistory = 0.20
 
 class RecommendationService {
+  final SpotifyService _spotifyService = SpotifyService();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<List<RecommendationModel>> getSuggestions({
@@ -168,4 +170,26 @@ class RecommendationService {
         .doc(roomId)
         .update({'currentSongId': songId});
   }
+  Future<List<RecommendationModel>> getSpotifySuggestions({
+  required String query,
+  int topN = 5,
+}) async {
+  final tracks = await _spotifyService.searchTracks(query);
+
+  return tracks.take(topN).map((track) {
+    return RecommendationModel(
+      songId: track.id,
+      spotifyId: track.id,
+      title: track.name,
+      artist: track.artistNames.join(', '),
+      albumArtUrl: track.albumArtUrl,
+      totalScore: 1.0,
+      voteScore: 0.0,
+      moodScore: 1.0,
+      historyScore: 0.0,
+      reasoning: 'Recommended from Spotify for "$query"',
+    );
+  }).toList();
+}
+
 }

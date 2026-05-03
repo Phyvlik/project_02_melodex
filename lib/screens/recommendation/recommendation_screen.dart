@@ -31,9 +31,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     final List<UserModel> members =
         auth.user != null ? [auth.user!] : [];
 
-    await context.read<PlaylistProvider>().loadRecommendations(
+    await context.read<PlaylistProvider>().loadSpotifyRecommendations(
           currentMood: room.currentMood,
-          roomMembers: members,
         );
   }
 
