@@ -27,6 +27,8 @@ class PlaylistProvider extends ChangeNotifier {
   bool _isLoadingRecs = false;
   String? _errorMessage;
   String? _roomId;
+  String? _userId;
+  String _userName = '';
   String? _currentlyPlayingId;
   Timer? _pollTimer;
   bool _isHost = false;
@@ -46,9 +48,11 @@ class PlaylistProvider extends ChangeNotifier {
   VoteType voteFor(String songId) =>
       _userVotes[songId] ?? VoteType.none;
 
-  void attachRoom(String roomId, String userId, {bool isHost = false}) {
+  void attachRoom(String roomId, String userId, {bool isHost = false, String userName = ''}) {
     if (_roomId == roomId) return;
     _roomId = roomId;
+    _userId = userId;
+    _userName = userName;
     _isHost = isHost;
 
     _playlistSub?.cancel();
@@ -177,9 +181,45 @@ Future<void> loadSpotifyRecommendations({
   }
 
   Future<void> playTopSong() async {
-    if (_songs.isEmpty) return;
+    if (_songs.isEmpty) {
+      if (_recommendations.isNotEmpty) {
+        await _playFromRecommendation();
+      }
+      return;
+    }
     final top = _songs.first;
     await _playSong(top.id);
+  }
+
+  Future<void> _playFromRecommendation() async {
+    if (_recommendations.isEmpty || _roomId == null) return;
+    final rec = _recommendations.first;
+    _recommendations.removeAt(0);
+    notifyListeners();
+
+    final song = SongModel(
+      id: '',
+      spotifyId: rec.spotifyId,
+      title: rec.title,
+      artist: rec.artist,
+      album: '',
+      albumArtUrl: rec.albumArtUrl,
+      durationMs: 0,
+      addedByUid: _userId ?? '',
+      addedByName: _userName,
+      addedAt: DateTime.now(),
+    );
+
+    final saved = await _playlistService.addSong(_roomId!, song);
+
+    try {
+      await _playbackService.play(rec.spotifyId);
+    } catch (_) {}
+
+    await _playlistService.markSongPlayed(_roomId!, saved.id);
+    _currentlyPlayingId = saved.id;
+    notifyListeners();
+    _startPolling();
   }
 
   Future<void> _playSong(String songId) async {

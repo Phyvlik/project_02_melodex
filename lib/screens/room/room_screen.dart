@@ -26,9 +26,14 @@ class _RoomScreenState extends State<RoomScreen> {
   @override
   void initState() {
     super.initState();
-    final uid = context.read<AuthProvider>().user?.uid ?? '';
+    final user = context.read<AuthProvider>().user;
+    final uid = user?.uid ?? '';
     final isHost = widget.room.hostUid == uid;
-    context.read<PlaylistProvider>().attachRoom(widget.room.id, uid, isHost: isHost);
+    context.read<PlaylistProvider>().attachRoom(
+      widget.room.id, uid,
+      isHost: isHost,
+      userName: user?.displayName ?? '',
+    );
     final roomProvider = context.read<RoomProvider>();
     if (roomProvider.currentRoom == null) {
       roomProvider.setCurrentRoom(widget.room);
@@ -36,8 +41,6 @@ class _RoomScreenState extends State<RoomScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    final auth = context.read<AuthProvider>();
-    final roomProvider = context.read<RoomProvider>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -60,11 +63,8 @@ class _RoomScreenState extends State<RoomScreen> {
       ),
     );
 
-if (confirmed == true) {
-  final user = auth.user!;
-  if (mounted) {
-    Navigator.pop(context); // Go back to home screen
-  }
+if (confirmed == true && mounted) {
+  Navigator.pop(context);
 }
 return false;
   }
