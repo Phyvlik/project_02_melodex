@@ -33,7 +33,12 @@ class PlaylistProvider extends ChangeNotifier {
   Timer? _pollTimer;
   bool _isHost = false;
   String _currentMood = '';
-  int _recOffset = 0;
+  int _queryVariantIndex = 0;
+
+  static const List<String> _queryVariants = [
+    'music', 'hits', 'vibes', 'songs', 'playlist',
+    'mix', 'classics', 'top tracks', 'favorites', 'essentials',
+  ];
 
   StreamSubscription<List<SongModel>>? _playlistSub;
   StreamSubscription<Map<String, VoteType>>? _votesSub;
@@ -162,23 +167,24 @@ class PlaylistProvider extends ChangeNotifier {
     required String currentMood,
   }) async {
     if (_currentMood != currentMood) {
-      _recOffset = 0;
+      _queryVariantIndex = 0;
     }
     _currentMood = currentMood;
     await _fetchRecommendations();
   }
 
   Future<void> _fetchRecommendations() async {
+    if (_currentMood.isEmpty) return;
     _isLoadingRecs = true;
     notifyListeners();
 
     try {
-      final query = '$_currentMood music';
+      final variant = _queryVariants[_queryVariantIndex % _queryVariants.length];
+      _queryVariantIndex++;
+      final query = '$_currentMood $variant';
       final fresh = await _recommendationService.getSpotifySuggestions(
         query: query,
-        offset: _recOffset,
       );
-      _recOffset += fresh.length;
       _recommendations = fresh;
     } catch (_) {
       _recommendations = [];
