@@ -12,6 +12,9 @@ import '../services/chat_service.dart';
 import '../services/spotify_playback_service.dart';
 import '../models/chat_message_model.dart';
 
+// Central state layer for the room's song queue, voting, playback, and AI recommendations.
+// All Firestore writes go through PlaylistService; this provider holds the in-memory view
+// and drives Spotify playback via SpotifyPlaybackService.
 class PlaylistProvider extends ChangeNotifier {
   final PlaylistService _playlistService = PlaylistService();
   final VoteService _voteService = VoteService();
@@ -29,12 +32,14 @@ class PlaylistProvider extends ChangeNotifier {
   String? _roomId;
   String? _userId;
   String _userName = '';
-  String? _currentlyPlayingId;
-  Timer? _pollTimer;
+  String? _currentlyPlayingId; // Firestore song ID currently playing (null = nothing playing)
+  Timer? _pollTimer;           // polls Spotify /me/player every 4 s to detect track end
   bool _isHost = false;
   String _currentMood = '';
-  int _queryVariantIndex = 0;
+  int _queryVariantIndex = 0;  // rotates through query variants for fresh Spotify suggestions
+  SongModel? _currentlyPlayingSong;
 
+  // 10 search modifiers rotated per refresh so Spotify returns different result sets each time
   static const List<String> _queryVariants = [
     'music', 'hits', 'vibes', 'songs', 'playlist',
     'mix', 'classics', 'top tracks', 'favorites', 'essentials',
@@ -51,10 +56,14 @@ class PlaylistProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isEmpty => _songs.isEmpty;
   String? get currentlyPlayingId => _currentlyPlayingId;
+  SongModel? get currentlyPlayingSong => _currentlyPlayingSong;
 
   VoteType voteFor(String songId) =>
       _userVotes[songId] ?? VoteType.none;
 
+  // Called once when the user enters a room. Subscribes to Firestore streams
+  // for the queue and votes. If this user is the host and the queue was empty
+  // before (first song just added), auto-play kicks off without requiring a tap.
   void attachRoom(String roomId, String userId, {bool isHost = false, String userName = ''}) {
     if (_roomId == roomId) return;
     _roomId = roomId;
@@ -62,12 +71,20 @@ class PlaylistProvider extends ChangeNotifier {
     _userName = userName;
     _isHost = isHost;
 
+    // Reset playback state from any previous room so the auto-play condition
+    // isn't blocked by a leftover timer or playing ID from the last session.
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    _currentlyPlayingId = null;
+    _currentlyPlayingSong = null;
+
     _playlistSub?.cancel();
     _playlistSub = _playlistService.watchPlaylist(roomId).listen((songs) {
       final wasEmpty = _songs.isEmpty;
       _songs = songs;
       notifyListeners();
 
+      // Auto-start: host gets playback going the moment the first song lands
       if (_isHost &&
           wasEmpty &&
           songs.isNotEmpty &&
@@ -228,6 +245,7 @@ class PlaylistProvider extends ChangeNotifier {
 
     await _playlistService.markSongPlayed(_roomId!, saved.id);
     _currentlyPlayingId = saved.id;
+    _currentlyPlayingSong = saved;
     notifyListeners();
     _startPolling();
   }
@@ -276,6 +294,7 @@ class PlaylistProvider extends ChangeNotifier {
 
     await _playlistService.markSongPlayed(_roomId!, saved.id);
     _currentlyPlayingId = saved.id;
+    _currentlyPlayingSong = saved;
     notifyListeners();
     _startPolling();
   }
@@ -295,19 +314,25 @@ class PlaylistProvider extends ChangeNotifier {
 
     await _playlistService.markSongPlayed(_roomId!, songId);
     _currentlyPlayingId = songId;
+    _currentlyPlayingSong = song;
     notifyListeners();
 
     _startPolling();
   }
 
+  // Polls Spotify /me/player every 4 seconds.
+  // Spotify returns HTTP 204 (null state) when no track is active.
+  // We only treat null as "track ended" after we have confirmed at least one
+  // non-null state — this prevents a missing/expired token from cascade-wiping
+  // the queue (token missing → getPlaybackState always null → infinite advance).
   void _startPolling() {
     _pollTimer?.cancel();
+    var sawPlayback = false; // must see Spotify playing before advancing on null
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
       final state = await _playbackService.getPlaybackState();
 
-      // 204 / null while we own a playing song means the track ended
       if (state == null) {
-        if (_currentlyPlayingId != null) {
+        if (_currentlyPlayingId != null && sawPlayback) {
           _pollTimer?.cancel();
           _pollTimer = null;
           _currentlyPlayingId = null;
@@ -316,6 +341,8 @@ class PlaylistProvider extends ChangeNotifier {
         }
         return;
       }
+
+      sawPlayback = true;
 
       if (state.isNearEnd) {
         _pollTimer?.cancel();

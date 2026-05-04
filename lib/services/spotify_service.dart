@@ -271,9 +271,10 @@ Future<void> _exchangeCodeForToken(String code) async {
   final expiry = DateTime.now().add(Duration(seconds: expiresIn));
 
   final prefs = await SharedPreferences.getInstance();
-  await prefs.setString(AppConstants.prefSpotifyToken, accessToken);
+  // Save PKCE user token to its own keys — separate from client credentials token
+  await prefs.setString(AppConstants.prefSpotifyUserToken, accessToken);
   await prefs.setInt(
-    AppConstants.prefSpotifyExpiry,
+    AppConstants.prefSpotifyUserTokenExpiry,
     expiry.millisecondsSinceEpoch,
   );
 

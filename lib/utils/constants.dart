@@ -31,6 +31,10 @@ class AppConstants {
   static const String spotifyRedirectUri = 'melodex://spotify-auth';
   static const String prefSpotifyRefreshToken = 'spotify_refresh_token';
 
+  // Separate keys for PKCE user token so client-credentials search never overwrites it
+  static const String prefSpotifyUserToken = 'spotify_user_access_token';
+  static const String prefSpotifyUserTokenExpiry = 'spotify_user_token_expiry';
+
   // Mood options shown to users
   static const List<String> moodOptions = [
     'hype',
