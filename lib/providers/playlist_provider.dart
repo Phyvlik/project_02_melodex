@@ -38,6 +38,7 @@ class PlaylistProvider extends ChangeNotifier {
   String _currentMood = '';
   int _queryVariantIndex = 0;  // rotates through query variants for fresh Spotify suggestions
   SongModel? _currentlyPlayingSong;
+  bool _isSpotifyPlaying = false;
 
   // 10 search modifiers rotated per refresh so Spotify returns different result sets each time
   static const List<String> _queryVariants = [
@@ -57,6 +58,7 @@ class PlaylistProvider extends ChangeNotifier {
   bool get isEmpty => _songs.isEmpty;
   String? get currentlyPlayingId => _currentlyPlayingId;
   SongModel? get currentlyPlayingSong => _currentlyPlayingSong;
+  bool get isSpotifyPlaying => _isSpotifyPlaying;
 
   VoteType voteFor(String songId) =>
       _userVotes[songId] ?? VoteType.none;
@@ -77,6 +79,7 @@ class PlaylistProvider extends ChangeNotifier {
     _pollTimer = null;
     _currentlyPlayingId = null;
     _currentlyPlayingSong = null;
+    _isSpotifyPlaying = false;
 
     _playlistSub?.cancel();
     _playlistSub = _playlistService.watchPlaylist(roomId).listen((songs) {
@@ -246,6 +249,7 @@ class PlaylistProvider extends ChangeNotifier {
     await _playlistService.markSongPlayed(_roomId!, saved.id);
     _currentlyPlayingId = saved.id;
     _currentlyPlayingSong = saved;
+    _isSpotifyPlaying = true;
     notifyListeners();
     _startPolling();
   }
@@ -295,6 +299,7 @@ class PlaylistProvider extends ChangeNotifier {
     await _playlistService.markSongPlayed(_roomId!, saved.id);
     _currentlyPlayingId = saved.id;
     _currentlyPlayingSong = saved;
+    _isSpotifyPlaying = true;
     notifyListeners();
     _startPolling();
   }
@@ -315,6 +320,7 @@ class PlaylistProvider extends ChangeNotifier {
     await _playlistService.markSongPlayed(_roomId!, songId);
     _currentlyPlayingId = songId;
     _currentlyPlayingSong = song;
+    _isSpotifyPlaying = true;
     notifyListeners();
 
     _startPolling();
@@ -343,6 +349,11 @@ class PlaylistProvider extends ChangeNotifier {
       }
 
       sawPlayback = true;
+
+      if (state.isPlaying != _isSpotifyPlaying) {
+        _isSpotifyPlaying = state.isPlaying;
+        notifyListeners();
+      }
 
       if (state.isNearEnd) {
         _pollTimer?.cancel();

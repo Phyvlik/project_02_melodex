@@ -47,7 +47,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
           : Column(
               children: [
                 if (nowPlaying != null)
-                  _NowPlayingCard(song: nowPlaying),
+                  _NowPlayingCard(
+                    song: nowPlaying,
+                    isPlaying: playlist.isSpotifyPlaying,
+                  ),
                 Expanded(
                   child: playlist.isEmpty
                       ? Center(
@@ -128,7 +131,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
 
 class _NowPlayingCard extends StatefulWidget {
   final SongModel song;
-  const _NowPlayingCard({required this.song});
+  final bool isPlaying;
+  const _NowPlayingCard({required this.song, required this.isPlaying});
 
   @override
   State<_NowPlayingCard> createState() => _NowPlayingCardState();
@@ -144,7 +148,20 @@ class _NowPlayingCardState extends State<_NowPlayingCard>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
-    )..repeat(reverse: true);
+    );
+    if (widget.isPlaying) _controller.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(_NowPlayingCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying != oldWidget.isPlaying) {
+      if (widget.isPlaying) {
+        _controller.repeat(reverse: true);
+      } else {
+        _controller.stop();
+      }
+    }
   }
 
   @override
@@ -187,9 +204,11 @@ class _NowPlayingCardState extends State<_NowPlayingCard>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'NOW PLAYING',
+                  widget.isPlaying ? 'NOW PLAYING' : 'PAUSED',
                   style: TextStyle(
-                    color: AppColors.primary,
+                    color: widget.isPlaying
+                        ? AppColors.primary
+                        : AppColors.onSurface.withAlpha(160),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
