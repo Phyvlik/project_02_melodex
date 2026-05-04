@@ -84,12 +84,39 @@ class SpotifyPlaybackService {
     }
   }
 
+  Future<String?> _getDeviceId(String token) async {
+    try {
+      final response = await _dio.get(
+        'https://api.spotify.com/v1/me/player/devices',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          validateStatus: (s) => s != null && s < 500,
+        ),
+      );
+      if (response.statusCode != 200 || response.data == null) return null;
+      final devices = response.data['devices'] as List<dynamic>;
+      if (devices.isEmpty) return null;
+      final active = devices.firstWhere(
+        (d) => d['is_active'] == true,
+        orElse: () => devices.first,
+      );
+      return active['id'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> play(String spotifyId) async {
     final token = await _getToken();
     if (token == null) throw Exception('Not connected to Spotify');
 
+    final deviceId = await _getDeviceId(token);
+    final url = deviceId != null
+        ? 'https://api.spotify.com/v1/me/player/play?device_id=$deviceId'
+        : 'https://api.spotify.com/v1/me/player/play';
+
     await _dio.put(
-      'https://api.spotify.com/v1/me/player/play',
+      url,
       data: {
         'uris': ['spotify:track:$spotifyId'],
       },
