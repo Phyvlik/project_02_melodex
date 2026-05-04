@@ -28,7 +28,10 @@ service cloud.firestore {
     match /rooms/{roomId} {
       allow read: if isAuth();
       allow create: if isAuth();
-      allow update: if isRoomMember(roomId);
+      allow update: if isRoomMember(roomId) ||
+        (isAuth() &&
+         request.resource.data.memberUids.hasAll(resource.data.memberUids) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids']));
       allow delete: if isAuth() &&
         request.auth.uid == resource.data.hostUid;
 
