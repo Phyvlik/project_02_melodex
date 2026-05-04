@@ -95,20 +95,45 @@ return false;
             ],
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.share_outlined),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: room.inviteCode));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        'Invite code "${room.inviteCode}" copied to clipboard'),
-                    backgroundColor: AppColors.surface,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
-              tooltip: 'Share invite code',
+            Tooltip(
+              message: 'Copy invite code',
+              triggerMode: TooltipTriggerMode.longPress,
+              preferBelow: true,
+              child: IconButton(
+                icon: const Icon(Icons.person_add_outlined),
+                tooltip: 'Copy invite code',
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: room.inviteCode));
+                  ScaffoldMessenger.of(context)
+                    ..clearSnackBars()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle,
+                                color: AppColors.primary, size: 20),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Invite code copied: ${room.inviteCode}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: const Color(0xFF1E1E1E),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(
+                              color: AppColors.primary.withAlpha(120)),
+                        ),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                },
+              ),
             ),
             if (isHost)
               PopupMenuButton<String>(
